@@ -1,0 +1,22 @@
+{
+  "name": "Scientific Paper Section",
+  "structure": "Introduction + Methods + Results + Discussion + Conclusion + References",
+  "content_guidelines": [
+    "Introduce the topic discussed in the research",
+    "Extract and describe the actual methodology used in the source nanopublications",
+    "Present the specific results and findings from the nanopublications", 
+    "Discuss the interpretation and significance of the actual findings",
+    "Write a short conclusion based on the discussion and significance of the results",
+    "Use precise, technical language appropriate for scientific audience",
+    "Follow standard scientific writing conventions",
+    "Include appropriate technical terminology from the source research",
+    "Maintain objectivity and scientific rigor",
+    "Cite nanopublications in-text using numbered references [1], [2], etc.",
+    "Include a References section at the end with full list of nanopub citations",
+    "Every claim or finding should be properly attributed to its source nanopublication",
+    "DO NOT invent or generalize methods - only describe what is explicitly stated in the data"
+  ],
+  "prompt_template": "Write a scientific paper section that presents the actual research methods, results, and findings from the provided nanopublications. Extract and synthesize the real methodologies, results, and conclusions from the source data. Do not create generic descriptions - use the specific research details provided. {user_instructions}",
+  "max_length": 1000000,
+  "style_guidelines": "Precise, objective, technical, follows scientific conventions, factually accurate, properly cited, based on actual source data"
+}

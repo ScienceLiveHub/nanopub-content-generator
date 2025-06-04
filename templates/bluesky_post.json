@@ -1,0 +1,15 @@
+{
+  "name": "Bluesky Post",
+  "structure": "Concise insight + Context",
+  "content_guidelines": [
+    "Keep under 300 characters total",
+    "Lead with the key finding or insight",
+    "Add brief context if space allows",
+    "Use conversational, accessible tone",
+    "Include relevant hashtags",
+    "Make it engaging and shareable"
+  ],
+  "prompt_template": "Create a concise Bluesky post that captures the essence of the research in an engaging, accessible way. {user_instructions}",
+  "max_length": 300,
+  "style_guidelines": "Concise, conversational, informative, factually accurate"
+}

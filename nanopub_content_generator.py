@@ -20,116 +20,64 @@ class Template:
     """Template for different output formats"""
     name: str
     structure: str
-    system_prompt_template: str  # System instructions for format/structure
+    content_guidelines: List[str]
+    prompt_template: str  # Simple template content, not full system prompt
     max_length: int
     style_guidelines: str
 
 class NanopubContentGenerator:
-    def __init__(self, endpoint_url: str = "http://grlc.nanopubs.lod.labs.vu.nl"):
+    def __init__(self, endpoint_url: str = "http://grlc.nanopubs.lod.labs.vu.nl", templates_dir: str = "templates"):
         self.endpoint_url = endpoint_url
-        self.templates = self._initialize_templates()
+        self.templates_dir = templates_dir
+        self.templates = self._load_templates()
         self.nanopub_endpoint = GrlcNanopubEndpoint(base_url=endpoint_url)
         
-    def _initialize_templates(self) -> Dict[str, Template]:
-        """Initialize predefined templates for different output formats"""
-        return {
-            "linkedin_post": Template(
-                name="LinkedIn Post",
-                structure="Hook + Context + Key Insights + Call to Action",
-                system_prompt_template="""You are a professional content creator specializing in LinkedIn posts. Create a LinkedIn post based on the following nanopublication data:
-
-Data: {content}
-Vocabularies: {vocabularies}
-Source Nanopublications: {sources}
-
-SYSTEM REQUIREMENTS:
-- Structure: Hook + Context + Key Insights + Call to Action
-- Format: Professional, engaging, accessible to general audience
-- Length: Under 3000 characters
-- Include relevant hashtags
-- No formal citations in the post content
-- Use natural attribution (e.g., "Recent research shows...")
-
-USER INSTRUCTIONS:
-{user_instructions}
-
-Generate the LinkedIn post following both the system requirements and user instructions above.""",
-                max_length=3000,
-                style_guidelines="Professional, engaging, accessible to general audience, no formal citations"
-            ),
-            
-            "bluesky_post": Template(
-                name="Bluesky Post",
-                structure="Concise insight + Context + Citation",
-                system_prompt_template="""You are a social media content creator for Bluesky. Create a Bluesky post based on this nanopublication:
-
-Data: {content}
-Vocabularies: {vocabularies}
-Source Nanopublications: {sources}
-
-SYSTEM REQUIREMENTS:
-- Format: Concise but informative (under 300 characters)
-- Include the key finding/insight
-- Conversational tone
-- Use relevant hashtags
-- Keep it engaging and accessible
-
-USER INSTRUCTIONS:
-{user_instructions}
-
-Generate the Bluesky post following both the system requirements and user instructions above.""",
-                max_length=300,
-                style_guidelines="Concise, conversational, informative"
-            ),
-            
-            "opinion_paper": Template(
-                name="Opinion Paper",
-                structure="Abstract + Introduction + Main Arguments + Implications + Conclusion",
-                system_prompt_template="""You are an academic writer creating an opinion paper. Write based on the nanopublication data:
-
-Data: {content}
-Vocabularies: {vocabularies}
-Source Nanopublications: {sources}
-
-SYSTEM REQUIREMENTS:
-- Structure: Abstract + Introduction + Main Arguments + Implications + Conclusion
-- Style: Academic but accessible
-- Length: Around 2000 words
-- Include proper reasoning and evidence-based arguments
-- Maintain scholarly tone
-
-USER INSTRUCTIONS:
-{user_instructions}
-
-Generate the opinion paper following both the system requirements and user instructions above.""",
-                max_length=2000,
-                style_guidelines="Academic but accessible, well-structured, evidence-based"
-            ),
-            
-            "scientific_paper": Template(
-                name="Scientific Paper Section",
-                structure="Methods + Results + Discussion + References",
-                system_prompt_template="""You are a scientific writer creating a paper section. Generate based on:
-
-Data: {content}
-Vocabularies: {vocabularies}
-Source Nanopublications: {sources}
-
-SYSTEM REQUIREMENTS:
-- Structure: Methods + Results + Discussion
-- Style: Precise, objective, technical
-- Follow standard scientific writing conventions
-- Use appropriate technical terminology
-- Length: Around 1500 words
-
-USER INSTRUCTIONS:
-{user_instructions}
-
-Generate the scientific paper section following both the system requirements and user instructions above.""",
-                max_length=1500,
-                style_guidelines="Precise, objective, technical, follows scientific conventions"
-            )
-        }
+    def _load_templates(self) -> Dict[str, Template]:
+        """Load templates from JSON files in the templates directory"""
+        import os
+        
+        # Check if templates directory exists
+        if not os.path.exists(self.templates_dir):
+            raise FileNotFoundError(f"Templates directory '{self.templates_dir}' not found. Please create it and add template files.")
+        
+        templates = {}
+        
+        # Load all JSON files from templates directory
+        for filename in os.listdir(self.templates_dir):
+            if filename.endswith('.json'):
+                template_name = filename[:-5]  # Remove .json extension
+                file_path = os.path.join(self.templates_dir, filename)
+                
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        template_data = json.load(f)
+                    
+                    # Validate required fields
+                    required_fields = ['name', 'structure', 'content_guidelines', 'prompt_template', 'max_length', 'style_guidelines']
+                    missing_fields = [field for field in required_fields if field not in template_data]
+                    if missing_fields:
+                        raise ValueError(f"Missing required fields: {missing_fields}")
+                    
+                    # Create Template object from JSON data
+                    template = Template(
+                        name=template_data['name'],
+                        structure=template_data['structure'],
+                        content_guidelines=template_data['content_guidelines'],
+                        prompt_template=template_data['prompt_template'],
+                        max_length=template_data['max_length'],
+                        style_guidelines=template_data['style_guidelines']
+                    )
+                    
+                    templates[template_name] = template
+                    print(f"Loaded template: {template_name}")
+                    
+                except Exception as e:
+                    raise RuntimeError(f"Error loading template from {filename}: {e}")
+        
+        if not templates:
+            raise RuntimeError(f"No valid templates found in '{self.templates_dir}'. Please add template JSON files.")
+        
+        return templates
     
     def parse_trig_nanopub(self, trig_content: str, uri: str) -> Dict[str, Any]:
         """Parse TriG format nanopub and extract structured information"""
@@ -407,22 +355,36 @@ Generate the scientific paper section following both the system requirements and
             # Use parsed content if available (from HTTP method)
             if 'parsed_content' in data and 'human_readable_summary' in data['parsed_content']:
                 parsed = data['parsed_content']
+                
+                # Extract more detailed information for scientific papers
+                detailed_assertions = []
+                for stmt in parsed['assertion_statements']:
+                    detailed_assertions.append({
+                        'subject': stmt['subject'],
+                        'predicate': stmt['predicate'], 
+                        'object': stmt['object'],
+                        'human_readable': stmt['human_readable']
+                    })
+                
                 content_item = {
                     'uri': data['uri'],
                     'title': parsed['publication_info'].get('title', 'Untitled'),
                     'author': parsed['publication_info'].get('author_name', 'Unknown'),
                     'summary': parsed['human_readable_summary'],
                     'main_claims': [stmt['human_readable'] for stmt in parsed['assertion_statements']],
+                    'detailed_assertions': detailed_assertions,  # Full RDF details
                     'topics': parsed['topics_and_concepts'],
                     'entities': list(parsed['publication_info'].get('entity_labels', {}).values()),
-                    'created': data['created']
+                    'created': data['created'],
+                    'raw_statements': [stmt for stmt in parsed['assertion_statements']]  # Include raw data for fact-checking
                 }
             else:
                 # Fallback to raw assertion content (from nanopub-py method)
                 content_item = {
                     'uri': data['uri'],
-                    'assertion': data['assertion'][:500] + "..." if len(data['assertion']) > 500 else data['assertion'],
-                    'created': data['created']
+                    'assertion': data['assertion'][:1000] + "..." if len(data['assertion']) > 1000 else data['assertion'],  # More content for scientific papers
+                    'created': data['created'],
+                    'note': 'Limited parsing - raw RDF content'
                 }
                 
                 # Try to extract vocabularies from raw RDF
@@ -443,23 +405,68 @@ Generate the scientific paper section following both the system requirements and
         if not user_instructions.strip():
             user_instructions = f"Create an engaging {template.name.lower()} that effectively communicates the research findings to the target audience."
         
-        # Format the system prompt with structured content and user instructions
-        formatted_prompt = template.system_prompt_template.format(
-            content=json.dumps(content_summary, indent=2),
-            vocabularies=json.dumps(all_vocabularies, indent=2),
-            sources="\n".join(sources),
-            user_instructions=user_instructions
-        )
+        # Build the complete system prompt
+        guidelines_text = "\n".join([f"- {guideline}" for guideline in template.content_guidelines])
+        
+        # For scientific papers, provide numbered citation mapping
+        citation_info = ""
+        if "scientific" in template.name.lower():
+            citation_info = "\n\nCITATION REFERENCE MAPPING:\n"
+            for i, data in enumerate(nanopub_data, 1):
+                citation_info += f"[{i}] {data['uri']}\n"
+            citation_info += f"\nUse these numbers [1], [2], etc. when citing specific nanopublications in your text."
+            citation_info += f"\nIMPORTANT: Include ALL {len(nanopub_data)} references in your References section, not just the first few."
+            citation_info += "\n\nSCIENTIFIC PAPER SPECIFIC INSTRUCTIONS:"
+            citation_info += "\n- METHODS: Extract actual methodologies, experimental setups, or research approaches described in the nanopublications"
+            citation_info += "\n- RESULTS: Present specific findings, measurements, or outcomes from the source data"
+            citation_info += "\n- DISCUSSION: Analyze what the results mean based on what's stated in the nanopublications"
+            citation_info += "\n- DO NOT write generic academic text - extract and synthesize the real research content\n"
+        
+        system_prompt = f"""You are a professional content creator specializing in {template.name.lower()}s.
+
+DATA PROVIDED:
+Data: {json.dumps(content_summary, indent=2)}
+Vocabularies: {json.dumps(all_vocabularies, indent=2)}
+Source Nanopublications: {'\n'.join(sources)}{citation_info}
+
+TASK:
+{template.prompt_template.format(user_instructions=user_instructions)}
+
+STRUCTURE REQUIREMENTS:
+{template.structure}
+
+CONTENT GUIDELINES:
+{guidelines_text}
+
+CRITICAL REQUIREMENTS:
+- ONLY use facts, claims, and information that are explicitly stated in the provided data
+- DO NOT invent statistics, percentages, or specific numbers that are not in the source data
+- If you mention specific claims, they must be directly traceable to the provided nanopublications
+- When referencing findings, use general language like "research shows", "studies indicate", "evidence suggests" rather than inventing specific metrics
+- Maximum length: {template.max_length} characters
+- Style: {template.style_guidelines}
+
+FACT-CHECKING REQUIREMENTS:
+- Before writing any specific statistic, percentage, or number, verify it exists in the provided data
+- If you cannot find a specific claim in the data, express it in general terms
+- Example: Instead of "reduces time by 90%" say "significantly reduces time"
+- Example: Instead of "improves efficiency by 50%" say "improves efficiency"
+- When in doubt, be conservative and factual rather than specific and potentially incorrect
+
+REMEMBER: Accuracy is more important than engagement. Do not fabricate data."""
         
         try:
             # Generate content using Ollama
-            print(f"Calling Ollama with model: {model}")
+            
+            # Calculate max tokens more generously for longer content
+            max_tokens = template.max_length // 3 if template.max_length > 2000 else template.max_length // 4
+            
             response = ollama.generate(
                 model=model,
-                prompt=formatted_prompt,
+                prompt=system_prompt,  # Use the built system prompt
                 options={
-                    'temperature': 0.7,
-                    'max_tokens': template.max_length // 4  # Rough token estimate
+                    'temperature': 0.3,  # Lower temperature for more factual, less creative output
+                    'max_tokens': max_tokens
                 }
             )
             
@@ -508,7 +515,6 @@ Generate the scientific paper section following both the system requirements and
                 return {"error": f"Template '{template_name}' not found. Available: {list(self.templates.keys())}"}
             
             template = self.templates[template_name]
-            print(f"Using template: {template.name}")
             
             # Step 3: Generate content
             generated_content = self.generate_content_with_ollama(
@@ -559,13 +565,15 @@ async def main():
                        help='Template to use for content generation')
     parser.add_argument('--model', '-m', type=str,
                        help='Ollama model to use')
+    parser.add_argument('--templates-dir', type=str, default='templates',
+                       help='Directory containing template JSON files (default: templates)')
     parser.add_argument('--output', '-o', type=str,
                        help='Output file to save the result')
     
     args = parser.parse_args()
     
     # Initialize the generator
-    generator = NanopubContentGenerator()
+    generator = NanopubContentGenerator(templates_dir=args.templates_dir)
     
     # Determine URIs to process
     nanopub_uris = []

@@ -1,0 +1,16 @@
+{
+  "name": "LinkedIn Post",
+  "structure": "Hook + Context + Key Insights + Call to Action",
+  "content_guidelines": [
+    "Start with an engaging hook (1-2 sentences)",
+    "Provide brief context about the research/finding",
+    "Present 2-3 key insights or implications",
+    "End with a call to action or question for engagement",
+    "Include relevant hashtags",
+    "Use natural attribution (e.g., 'Recent research shows...')",
+    "Keep professional but accessible tone"
+  ],
+  "prompt_template": "Create a LinkedIn post about the research findings. Focus on making complex scientific information accessible to a general professional audience. {user_instructions}",
+  "max_length": 3000,
+  "style_guidelines": "Professional, engaging, accessible to general audience, no formal citations, factually accurate"
+}

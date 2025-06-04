@@ -1,0 +1,16 @@
+{
+  "name": "Opinion Paper",
+  "structure": "Abstract + Introduction + Main Arguments + Implications + Conclusion",
+  "content_guidelines": [
+    "Write a 150-200 word abstract summarizing your position",
+    "Introduce the topic and state your thesis clearly",
+    "Present main arguments supported by the research data",
+    "Discuss implications for the field or society",
+    "Conclude with future directions or recommendations",
+    "Maintain scholarly tone while being accessible",
+    "Use evidence-based reasoning throughout"
+  ],
+  "prompt_template": "Write an opinion paper that presents a clear position on the research topic, supported by evidence from the data. {user_instructions}",
+  "max_length": 2000,
+  "style_guidelines": "Academic but accessible, well-structured, evidence-based, factually accurate"
+}
