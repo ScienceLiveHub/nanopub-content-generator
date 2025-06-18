@@ -422,7 +422,7 @@ class NanopubContentGenerator:
             citation_info += "\n- DISCUSSION: Analyze what the results mean based on what's stated in the nanopublications"
             citation_info += "\n- DO NOT write generic academic text - extract and synthesize the real research content\n"
         
-        system_prompt = f"""You are a professional content creator specializing in {template.name.lower()}s.
+        system_prompt = """You are a professional content creator specializing in {template_name}s.
 
 DATA PROVIDED:
 Data: {json.dumps(content_summary, indent=2)}
