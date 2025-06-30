@@ -32,9 +32,15 @@ setup(
     python_requires=">=3.8",
     install_requires=requirements,
     include_package_data=True,
+    
+    # package data configuration
     package_data={
-        "nanopub_content_generator": ["templates/*.json"],
+        "": ["templates/*.json"],  # Include templates from root
     },
+    
+    # ALTERNATIVE: Use MANIFEST.in approach
+    # Create a MANIFEST.in file with: recursive-include templates *.json
+    
     entry_points={
         "console_scripts": [
             "nanopub-generate=nanopub_content_generator.cli:main",
