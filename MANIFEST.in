@@ -1,0 +1,25 @@
+# MANIFEST.in for nanopub-content-generator
+# This file tells setuptools which additional files to include in the package
+
+# Include all JSON template files
+recursive-include templates *.json
+
+# Include the __init__.py in templates directory
+include templates/__init__.py
+
+# Include documentation
+include README.md
+include LICENSE
+include requirements.txt
+
+# Include any other configuration files
+include *.txt
+include *.md
+include *.yml
+include *.yaml
+
+# Exclude development and build files
+exclude .gitignore
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
